@@ -1,4 +1,12 @@
 locals {
+  diagnostics_map = {
+    for r in var.regions : r => {
+      diags_sa = module.diag_helper.diagnostics_stack[r].storage_account_id // data.azurerm_storage_account.monitoring[r].id
+      eh_id    = module.diag_helper.diagnostics_stack[r].event_hub_namespace_id
+      eh_name  = module.diag_helper.diagnostics_stack[r].event_hub_namespace_name
+      law_id   = module.diag_helper.diagnostics_stack[r].log_analytics_workspace_id
+    }
+  }
   address_spaces = zipmap(var.regions, var.address_spaces)
 
   # tflint-ignore: terraform_unused_declarations
@@ -56,11 +64,13 @@ locals {
 
   # Maintain subnet name if in special_subnets, otherwise use naming module
   subnets = {
-    for subnet in local.subnet_cidrs :
-    contains(local.special_subnets, subnet.name) ? subnet.name :
-    "${module.naming[local.regions[0]].subnet.name}-${subnet.name}" => {
-      address_prefixes             = [module.subnet_addressing[local.regions[0]].network_cidr_blocks[subnet.name]],
-      assign_generated_route_table = subnet.name == "AzureBastionSubnet" ? false : null
+    for region in local.regions : region => {
+      for subnet in local.subnet_cidrs :
+      contains(local.special_subnets, subnet.name) ? subnet.name :
+      "${module.naming[local.regions[0]].subnet.name}-${subnet.name}" => {
+        address_prefixes             = [module.subnet_addressing[local.regions[0]].network_cidr_blocks[subnet.name]],
+        assign_generated_route_table = subnet.name == "AzureBastionSubnet" ? false : null
+      }
     }
   }
 
@@ -161,17 +171,6 @@ module "hubnetworks" {
   version              = "1.1.0"
   hub_virtual_networks = local.hub_virtual_networks
   depends_on           = [azurerm_firewall_policy_rule_collection_group.allow_internal]
-}
-
-locals {
-  diagnostics_map = {
-    for r in var.regions : r => {
-      diags_sa = module.diag_helper.diagnostics_stack[r].storage_account_id // data.azurerm_storage_account.monitoring[r].id
-      eh_id    = module.diag_helper.diagnostics_stack[r].event_hub_namespace_id
-      eh_name  = module.diag_helper.diagnostics_stack[r].event_hub_namespace_name
-      law_id   = module.diag_helper.diagnostics_stack[r].log_analytics_workspace_id
-    }
-  }
 }
 
 module "diag_helper" {
