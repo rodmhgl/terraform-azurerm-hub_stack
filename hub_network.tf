@@ -69,7 +69,7 @@ locals {
       contains(local.special_subnets, subnet.name) ? subnet.name :
       "${module.naming[region].subnet.name}-${subnet.name}" => {
         address_prefixes             = [module.subnet_addressing[region].network_cidr_blocks[subnet.name]],
-        assign_generated_route_table = subnet.name == "AzureBastionSubnet" ? false : null
+        assign_generated_route_table = subnet.name == "AzureBastionSubnet" || subnet.name == "GatewaySubnet" ? false : null
       }
     }
   }
