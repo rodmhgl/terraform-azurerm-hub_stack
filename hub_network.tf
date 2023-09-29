@@ -67,8 +67,8 @@ locals {
     for region in local.regions : region => {
       for subnet in local.subnet_cidrs :
       contains(local.special_subnets, subnet.name) ? subnet.name :
-      "${module.naming[local.regions[0]].subnet.name}-${subnet.name}" => {
-        address_prefixes             = [module.subnet_addressing[local.regions[0]].network_cidr_blocks[subnet.name]],
+      "${module.naming[region].subnet.name}-${subnet.name}" => {
+        address_prefixes             = [module.subnet_addressing[region].network_cidr_blocks[subnet.name]],
         assign_generated_route_table = subnet.name == "AzureBastionSubnet" ? false : null
       }
     }
