@@ -87,7 +87,7 @@ locals {
       tags                            = local.network_tags
       hub_router_ip_address           = "1.2.3.4"
       flow_timeout_in_minutes         = 4
-      subnets                         = local.subnets
+      subnets                         = local.subnets[r]
       # subnets = {
       # firewall = {
       #   sku_name              = "AZFW_VNet"
