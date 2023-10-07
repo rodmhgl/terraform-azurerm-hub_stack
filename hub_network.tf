@@ -1,12 +1,16 @@
+provider "azurerm" {
+  features {}
+}
+
 locals {
-  diagnostics_map = {
+  diagnostics_map = var.enable_diagnostics ? {
     for r in var.regions : r => {
-      diags_sa = module.diag_helper.diagnostics_stack[r].storage_account_id // data.azurerm_storage_account.monitoring[r].id
-      eh_id    = module.diag_helper.diagnostics_stack[r].event_hub_namespace_id
-      eh_name  = module.diag_helper.diagnostics_stack[r].event_hub_namespace_name
-      law_id   = module.diag_helper.diagnostics_stack[r].log_analytics_workspace_id
+      diags_sa = module.diag_helper[0].diagnostics_stack[r].storage_account_id // data.azurerm_storage_account.monitoring[r].id
+      eh_id    = module.diag_helper[0].diagnostics_stack[r].event_hub_namespace_id
+      eh_name  = module.diag_helper[0].diagnostics_stack[r].event_hub_namespace_name
+      law_id   = module.diag_helper[0].diagnostics_stack[r].log_analytics_workspace_id
     }
-  }
+  } : {}
   address_spaces = zipmap(var.regions, var.address_spaces)
 
   # tflint-ignore: terraform_unused_declarations
@@ -88,7 +92,6 @@ locals {
       hub_router_ip_address           = "1.2.3.4"
       flow_timeout_in_minutes         = 4
       subnets                         = local.subnets[r]
-      # subnets = {
       # firewall = {
       #   sku_name              = "AZFW_VNet"
       #   sku_tier              = "Standard"
@@ -111,51 +114,6 @@ resource "azurerm_resource_group" "hub" {
   tags     = local.tags
 }
 
-# locals {
-#   subnets = [
-#     {
-#       name     = "integration"
-#       new_bits = 8
-#     },
-#     {
-#       name     = "integration2"
-#       new_bits = 8
-#     },
-#     {
-#       name     = "integration3"
-#       new_bits = 8
-#     },
-#     {
-#       name     = "ehsplunk"
-#       new_bits = 8
-#     },
-#     {
-#       name     = "ServiceNowVM"
-#       new_bits = 8
-#     },
-#     {
-#       name     = "GatewaySubnet"
-#       new_bits = 7
-#     },
-#     {
-#       name     = "AzureFirewallSubnet"
-#       new_bits = 3
-#     },
-#     {
-#       name     = "AzureBastionSubnet"
-#       new_bits = 3
-#     },
-#     {
-#       name     = "vmss"
-#       new_bits = 3
-#     },
-#     {
-#       name     = "pvtendpoint"
-#       new_bits = 1
-#     },
-#   ]
-# }
-
 module "subnet_addressing" {
   source  = "hashicorp/subnets/cidr"
   version = "1.0.0"
@@ -174,14 +132,11 @@ module "hubnetworks" {
 }
 
 module "diag_helper" {
+  count       = var.enable_diagnostics ? 1 : 0
   source      = "./diag_helper"
   regions     = var.regions
   prefix      = var.prefix
   environment = var.environment
-}
-
-output "diag_helper" {
-  value = module.diag_helper
 }
 
 data "azurerm_monitor_diagnostic_categories" "virtual_networks" {
@@ -195,7 +150,7 @@ data "azurerm_monitor_diagnostic_categories" "firewalls" {
 }
 
 module "firewall_diagnostics" {
-  for_each = module.hubnetworks.firewalls
+  for_each = var.enable_diagnostics ? module.hubnetworks.firewalls : {}
 
   source        = "github.com/rodmhgl/terraform-azurerm-azuremonitoronboarding?ref=v1.0.1"
   resource_name = each.value.name
@@ -210,7 +165,7 @@ module "firewall_diagnostics" {
 }
 
 module "virtual_network_diagnostics" {
-  for_each = module.hubnetworks.virtual_networks
+  for_each = var.enable_diagnostics ? module.hubnetworks.virtual_networks : {}
 
   source        = "github.com/rodmhgl/terraform-azurerm-azuremonitoronboarding?ref=v1.0.1"
   resource_name = each.value.name

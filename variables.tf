@@ -4,7 +4,7 @@ variable "environment" {
   default     = "sim"
 
   validation {
-    condition     = contains(["sim", "nprd", "prd"], var.environment)
+    condition     = contains(["tests", "sim", "nprd", "prd"], var.environment)
     error_message = "The environment must be one of sim, nprd, or prd."
   }
 }
@@ -29,4 +29,10 @@ variable "regions" {
 variable "address_spaces" {
   type        = list(string)
   description = "The address spaces to use for each region."
+}
+
+variable "enable_diagnostics" {
+  type        = bool
+  description = "Enables diagnostics for the stack."
+  default     = true
 }
