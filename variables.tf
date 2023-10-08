@@ -4,7 +4,7 @@ variable "environment" {
   default     = "sim"
 
   validation {
-    condition     = contains(["tests", "sim", "nprd", "prd"], var.environment)
+    condition     = contains(["test", "sim", "nprd", "prd"], var.environment)
     error_message = "The environment must be one of sim, nprd, or prd."
   }
 }
